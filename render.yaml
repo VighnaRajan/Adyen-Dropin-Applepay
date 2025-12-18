@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: adyen-applepay-dropin
+    name: applepay-adyen-sample-full
     env: docker
     plan: free
     dockerfilePath: Dockerfile
@@ -8,8 +8,4 @@ services:
       - key: ADYEN_API_KEY
         fromService: ""
       - key: ADYEN_MERCHANT_ACCOUNT
-        fromService: ""
-      - key: APPLE_MERCHANT_ID
-        fromService: ""
-      - key: DOMAIN_NAME
         fromService: ""

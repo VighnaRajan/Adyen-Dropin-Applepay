@@ -1,14 +1,10 @@
 /**
- * Adyen Apple Pay Drop-in (Render-ready)
- * - Exposes /api/adyen/applepay/sessions -> calls Adyen /applePay/sessions
- * - Exposes /api/adyen/payments -> calls Adyen /payments with applePay token
+ * Minimal Node/Express backend for Apple Pay + Adyen sample
+ * - Serves static files from /public
+ * - POST /api/adyen/applepay/sessions -> requests an Apple session from Adyen (Adyen-managed cert)
+ * - POST /api/adyen/payments -> forwards Apple Pay token to Adyen /payments (sandbox)
  *
- * This implementation expects:
- * - ADYEN_API_KEY, ADYEN_MERCHANT_ACCOUNT, APPLE_MERCHANT_ID, DOMAIN_NAME in env
- *
- * Important: You must host the apple-developer-merchantid-domain-association file at
- * https://<DOMAIN_NAME>/.well-known/apple-developer-merchantid-domain-association
- * (download it from Apple Developer and place it there).
+ * NOTE: Do not commit your ADYEN_API_KEY or merchant certs to git.
  */
 require('dotenv').config();
 const express = require('express');
@@ -18,36 +14,55 @@ const bodyParser = require('body-parser');
 
 const ADYEN_API_KEY = process.env.ADYEN_API_KEY;
 const ADYEN_MERCHANT_ACCOUNT = process.env.ADYEN_MERCHANT_ACCOUNT;
-const APPLE_MERCHANT_ID = process.env.APPLE_MERCHANT_ID;
-const DOMAIN_NAME = process.env.DOMAIN_NAME;
 const ADYEN_CHECKOUT_BASE = process.env.ADYEN_CHECKOUT_BASE || 'https://checkout-test.adyen.com/v67';
 const PORT = process.env.PORT || 3000;
-
-if (!ADYEN_API_KEY) {
-  console.error('ADYEN_API_KEY is required in environment');
-}
 
 const app = express();
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Create Apple merchant session via Adyen. Requires APPLE_MERCHANT_ID and domain verification
+// ---- Apple Pay domain verification audit filter ----
+app.use('/.well-known/apple-developer-merchantid-domain-association', (req, res, next) => {
+  console.log('=== Apple Pay Domain Verification Request ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Method:', req.method);
+  console.log('Host:', req.headers.host);
+  console.log('IP:', req.ip);
+
+  console.log('Headers:', {
+    'user-agent': req.headers['user-agent'],
+    'accept': req.headers['accept'],
+    'accept-encoding': req.headers['accept-encoding'],
+    'connection': req.headers['connection']
+  });
+
+  console.log('Query params:', req.query);
+  console.log('Body:', req.body);
+
+  console.log('============================================');
+
+  next(); // IMPORTANT: allow request to continue
+});
+
+
+// Request an Apple merchant session from Adyen (Adyen-managed certificate)
 app.post('/api/adyen/applepay/sessions', async (req, res) => {
+  if (!ADYEN_API_KEY) return res.status(500).json({ error: 'ADYEN_API_KEY not configured' });
+  console.log("ADYEN_API_KEY", ADYEN_API_KEY);
+  
+  const { origin, domainName, displayName, amount } = req.body || {};
+  const payload = {
+    domainName: domainName || new URL(origin || 'https://example.com').hostname,
+    displayName: displayName || 'Demo Store',
+    merchantIdentifier: "merchant.com.onebill.payment1",
+  };
+  console.log("payload", payload);
+  
+
   try {
-    if (!ADYEN_API_KEY) return res.status(500).json({ error: 'ADYEN_API_KEY not configured' });
-
-    const { origin, displayName } = req.body || {};
-    const domainName = process.env.DOMAIN_NAME || new URL(origin || 'https://example.com').hostname;
-    const payload = {
-      merchantIdentifier: process.env.APPLE_MERCHANT_ID,
-      domainName,
-      displayName: displayName || 'Demo Store',
-      amount: { currency: 'EUR', value: 1000 },
-      channel: 'Web'
-    };
-
     const resp = await fetch(`${ADYEN_CHECKOUT_BASE}/applePay/sessions`, {
       method: 'POST',
       headers: {
@@ -56,36 +71,58 @@ app.post('/api/adyen/applepay/sessions', async (req, res) => {
       },
       body: JSON.stringify(payload)
     });
-
+    console.log("resp", resp);
+    
     if (!resp.ok) {
       const txt = await resp.text();
+      console.log("errResp", txt);
+      
       console.error('Adyen sessions error', resp.status, txt);
-      return res.status(resp.status).json({ error: txt });
+      return res.status(resp.status).send({ error: txt });
     }
     const json = await resp.json();
+    console.log("jsonresp", json);
+    
     return res.json(json);
   } catch (err) {
-    console.error('applepay sessions err', err);
+    console.error('applepay/sessions err', err);
     return res.status(500).json({ error: 'internal' });
   }
 });
 
-// Process payment via Adyen /payments using applePayToken
+app.get(
+  '/.well-known/apple-developer-merchantid-domain-association',
+  (req, res) => {
+    res.sendFile(
+      path.join(
+        __dirname,
+        'public',
+        '.well-known',
+        'apple-developer-merchantid-domain-association'
+      )
+    );
+  }
+);
+
+
+// Send Apple Pay token to Adyen /payments (sandbox)
 app.post('/api/adyen/payments', async (req, res) => {
+  if (!ADYEN_API_KEY) return res.status(500).json({ error: 'ADYEN_API_KEY not configured' });
+  const { paymentData, amount } = req.body || {};
+  if (!paymentData) return res.status(400).json({ error: 'paymentData required' });
+
+  // Adyen expects applePayToken as base64 encoded JSON
+  const applePayTokenBase64 = Buffer.from(JSON.stringify(paymentData)).toString('base64');
+
+  const payload = {
+    amount: amount || { currency: 'EUR', value: 1000 },
+    paymentMethod: { type: 'applepay' },
+    applePayToken: applePayTokenBase64,
+    reference: `ORDER-${Date.now()}`,
+    merchantAccount: ADYEN_MERCHANT_ACCOUNT
+  };
+
   try {
-    if (!ADYEN_API_KEY) return res.status(500).json({ error: 'ADYEN_API_KEY not configured' });
-    const { paymentData, amount } = req.body || {};
-    if (!paymentData) return res.status(400).json({ error: 'paymentData required' });
-
-    const applePayTokenBase64 = Buffer.from(JSON.stringify(paymentData)).toString('base64');
-    const payload = {
-      amount: amount || { currency: 'EUR', value: 1000 },
-      paymentMethod: { type: 'applepay' },
-      applePayToken: applePayTokenBase64,
-      reference: `ORDER-${Date.now()}`,
-      merchantAccount: ADYEN_MERCHANT_ACCOUNT
-    };
-
     const resp = await fetch(`${ADYEN_CHECKOUT_BASE}/payments`, {
       method: 'POST',
       headers: {
@@ -94,18 +131,17 @@ app.post('/api/adyen/payments', async (req, res) => {
       },
       body: JSON.stringify(payload)
     });
-
     const json = await resp.json();
     return res.json(json);
   } catch (err) {
-    console.error('adyen payments err', err);
+    console.error('adyen payments error', err);
     return res.status(500).json({ error: 'internal' });
   }
 });
 
-// SPA fallback
+// Serve SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

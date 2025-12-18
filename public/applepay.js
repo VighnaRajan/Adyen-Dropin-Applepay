@@ -7,8 +7,8 @@ async function log(msg) {
 document.getElementById('apple-pay-btn').addEventListener('click', async () => {
   try {
     if (!window.ApplePaySession || !ApplePaySession.canMakePayments()) {
-      await log('Apple Pay not available in this browser/device.');
-      alert('Apple Pay is not available. Use Safari on iPhone with Wallet configured.');
+      await log('Apple Pay not available. Open this page in Safari on iPhone with Wallet configured.');
+      alert('Apple Pay not available. Use Safari on an iPhone.');
       return;
     }
 
@@ -23,12 +23,12 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
     const session = new ApplePaySession(3, paymentRequest);
 
     session.onvalidatemerchant = async (event) => {
-      await log('onvalidatemerchant triggered: requesting merchant session from backend...');
+      await log('onvalidatemerchant triggered. Requesting merchant session from backend...');
       const origin = window.location.origin;
       const resp = await fetch('/api/adyen/applepay/sessions', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ origin, displayName: 'Demo Store' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ origin, domainName: window.location.hostname, displayName: 'OneBill Store', amount: { currency: 'EUR', value: 1000 }})
       });
       if (!resp.ok) {
         const txt = await resp.text();
@@ -48,7 +48,7 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
 
       const resp = await fetch('/api/adyen/payments', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentData, amount: { currency: 'EUR', value: 1000 } })
       });
       const result = await resp.json();
@@ -57,10 +57,10 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
       if (success) {
         session.completePayment(ApplePaySession.STATUS_SUCCESS);
         await log('Payment succeeded (sandbox).');
-        alert('Payment succeeded (sandbox).');
+        alert('Payment succeeded (sandbox)');
       } else {
         session.completePayment(ApplePaySession.STATUS_FAILURE);
-        await log('Payment failed. See logs.');
+        await log('Payment failed. See server/console logs for details.');
         alert('Payment failed. Check logs.');
       }
     };
