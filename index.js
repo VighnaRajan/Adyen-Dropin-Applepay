@@ -57,7 +57,7 @@ app.post('/api/adyen/applepay/sessions', async (req, res) => {
   const payload = {
     domainName: domainName || new URL(origin || 'https://example.com').hostname,
     displayName: displayName || 'Demo Store',
-    merchantIdentifier: "merchant.com.onebill.payment1",
+    merchantIdentifier: "000000000312537",
   };
   console.log("payload", payload);
   
