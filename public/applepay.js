@@ -37,8 +37,13 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
         return;
       }
       const sessionData = await resp.json();
+      const decodedSession = JSON.parse(
+        Buffer.from(sessionData, "base64").toString("utf8")
+      );
+      console.log("decodedSession", decodedSession);
+      
       await log('Received merchant session. Completing merchant validation.');
-      session.completeMerchantValidation(sessionData);
+      session.completeMerchantValidation(decodedSession);
     };
 
     session.onpaymentauthorized = async (event) => {
