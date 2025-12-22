@@ -82,8 +82,13 @@ app.post('/api/adyen/applepay/sessions', async (req, res) => {
     }
     const json = await resp.json();
     console.log("jsonresp", json);
+
+    const decodedSession = JSON.parse(
+      Buffer.from(sessionData, "base64").toString("utf8")
+    );
+    console.log("decodedSession", decodedSession);
     
-    return res.json(json);
+    return res.json(decodedSession);
   } catch (err) {
     console.error('applepay/sessions err', err);
     return res.status(500).json({ error: 'internal' });
