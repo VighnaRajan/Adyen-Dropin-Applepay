@@ -84,7 +84,7 @@ app.post('/api/adyen/applepay/sessions', async (req, res) => {
     console.log("jsonresp", json);
 
     const decodedSession = JSON.parse(
-      Buffer.from(sessionData, "base64").toString("utf8")
+      Buffer.from(json, "base64").toString("utf8")
     );
     console.log("decodedSession", decodedSession);
     
