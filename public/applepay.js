@@ -15,7 +15,7 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
     const paymentRequest = {
       countryCode: 'US',
       currencyCode: 'EUR',
-      total: { label: 'Demo Store', amount: '10.00' },
+      total: { label: 'Demo Store', amount: '0.00' },
       supportedNetworks: ['visa', 'masterCard', 'amex'],
       merchantCapabilities: ['supports3DS']
     };
@@ -28,7 +28,7 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
       const resp = await fetch('/api/adyen/applepay/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin, domainName: window.location.hostname, displayName: 'OneBill Store', amount: { currency: 'EUR', value: 1000 }})
+        body: JSON.stringify({ origin, domainName: window.location.hostname, displayName: 'OneBill Store', amount: { currency: 'EUR', value: 0 }})
       });
       if (!resp.ok) {
         const txt = await resp.text();
@@ -45,12 +45,12 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
     session.onpaymentauthorized = async (event) => {
       await log('Payment authorized by device. Sending token to backend...');
       const payment = event.payment;
-      const paymentData = payment.token ? payment.token.paymentData : payment.paymentData;
+      const paymentData = payment.token ? payment.token.paymentData : payment.paymentData;      
 
       const resp = await fetch('/api/adyen/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentData, amount: { currency: 'EUR', value: 1000 } })
+        body: JSON.stringify({ paymentData, amount: { currency: 'EUR', value: 0 } })
       });
       const result = await resp.json();
       await log('Adyen response: ' + JSON.stringify(result));

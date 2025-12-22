@@ -82,11 +82,11 @@ app.post('/api/adyen/payments', async (req, res) => {
   const applePayTokenBase64 = Buffer.from(JSON.stringify(paymentData)).toString('base64');
 
   const payload = {
-    amount: amount || { currency: 'EUR', value: 1000 },
-    paymentMethod: { type: 'applepay' },
-    applePayToken: applePayTokenBase64,
+    amount: amount || { currency: 'EUR', value: 0 },
+    paymentMethod: { type: 'applepay', applePayToken: applePayTokenBase64 },
     reference: `ORDER-${Date.now()}`,
-    merchantAccount: ADYEN_MERCHANT_ACCOUNT
+    merchantAccount: ADYEN_MERCHANT_ACCOUNT,
+    recurringProcessingModel: 'CardOnFile'
   };
 
   try {
