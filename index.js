@@ -26,6 +26,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Request an Apple merchant session from Adyen (Adyen-managed certificate)
 app.post('/api/adyen/applepay/sessions', async (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
   if (!ADYEN_API_KEY) return res.status(500).json({ error: 'ADYEN_API_KEY not configured' });
   console.log("ADYEN_API_KEY", ADYEN_API_KEY);
   
@@ -74,6 +75,7 @@ app.post('/api/adyen/applepay/sessions', async (req, res) => {
 
 // Send Apple Pay token to Adyen /payments (sandbox)
 app.post('/api/adyen/payments', async (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
   if (!ADYEN_API_KEY) return res.status(500).json({ error: 'ADYEN_API_KEY not configured' });
   const { paymentData, amount } = req.body || {};
   if (!paymentData) return res.status(400).json({ error: 'paymentData required' });
