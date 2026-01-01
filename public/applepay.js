@@ -37,6 +37,7 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
         return;
       }
       const sessionData = await resp.json();
+      console.log("sessionData", sessionData);
       
       await log('Received merchant session. Completing merchant validation.');
       session.completeMerchantValidation(sessionData);
