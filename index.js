@@ -7,6 +7,8 @@
  * NOTE: Do not commit your ADYEN_API_KEY or merchant certs to git.
  */
 require('dotenv').config();
+require('cors');
+
 const express = require('express');
 const fetch = require('node-fetch');
 const path = require('path');
@@ -20,6 +22,15 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: false
+}));
+
+app.options("*", cors());
+
 
 // Health
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
