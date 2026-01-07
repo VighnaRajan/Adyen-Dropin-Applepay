@@ -17,7 +17,13 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
       currencyCode: 'EUR',
       total: { label: 'Demo Store', amount: '0.00' },
       supportedNetworks: ['visa', 'masterCard', 'amex'],
-      merchantCapabilities: ['supports3DS']
+      merchantCapabilities: ['supports3DS'],
+      requiredBillingContactFields: [
+        "email",
+        "name",
+        "phone",
+        "postalAddress"
+      ]
     };
 
     const session = new ApplePaySession(3, paymentRequest);
