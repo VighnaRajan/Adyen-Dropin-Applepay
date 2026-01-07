@@ -15,9 +15,10 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
     const paymentRequest = {
       countryCode: 'US',
       currencyCode: 'EUR',
-      total: { label: 'Demo Store', amount: '0.00' },
-      supportedNetworks: ['visa', 'masterCard', 'amex'],
+      total: { amount: '0.00' },
+      supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
       merchantCapabilities: ['supports3DS'],
+      shippingContactEditingMode: 'available',
       requiredBillingContactFields: [
         "email",
         "name",
@@ -26,7 +27,7 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
       ]
     };
 
-    const session = new ApplePaySession(3, paymentRequest);
+    const session = new ApplePaySession(14, paymentRequest);
 
     session.onvalidatemerchant = async (event) => {
       await log('onvalidatemerchant triggered. Requesting merchant session from backend...');
