@@ -15,7 +15,7 @@ document.getElementById('apple-pay-btn').addEventListener('click', async () => {
     const paymentRequest = {
       countryCode: 'US',
       currencyCode: 'EUR',
-      total: { amount: '0.00' },
+      total: { label : 'OneBill Store', amount: '0.00', type: 'final' },
       supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
       merchantCapabilities: ['supports3DS'],
       shippingContactEditingMode: 'available',
